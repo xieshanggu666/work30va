@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家庭营养膳食规划系统</title>
+<style>
+  :root {
+    --bg: #f3f7f2;
+    --panel: #ffffff;
+    --ink: #23332a;
+    --muted: #6b7d70;
+    --line: #e2eadf;
+    --brand: #2e8b57;
+    --brand-dark: #1f6e43;
+    --brand-soft: #e6f2ea;
+    --accent: #d98e2b;
+    --bad: #c0392b;
+    --good: #2e8b57;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+  .wrap { display: flex; min-height: 100vh; }
+  /* ---------- sidebar ---------- */
+  .side {
+    width: 300px; flex: 0 0 300px;
+    background: var(--panel);
+    border-right: 1px solid var(--line);
+    padding: 22px 18px;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  .side h1 { font-size: 20px; display: flex; align-items: center; gap: 8px; }
+  .side h1 .leaf { width: 26px; height: 26px; border-radius: 8px; background: var(--brand-soft); display: inline-flex; align-items: center; justify-content: center; }
+  .side .sub { font-size: 12px; color: var(--muted); margin: 6px 0 18px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: #3c4f43; }
+  .field select, .field input[type="number"] {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--line);
+    border-radius: 9px; font-size: 14px; background: #fbfdfb; color: var(--ink); outline: none;
+  }
+  .field select:focus, .field input:focus { border-color: var(--brand); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    font-size: 12px; padding: 5px 10px; border-radius: 999px;
+    border: 1px solid var(--line); cursor: pointer; user-select: none; background: #fbfdfb;
+    transition: all .15s;
+  }
+  .chip.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+  .budget-row { display: flex; align-items: center; gap: 10px; }
+  .budget-row input[type="range"] { flex: 1; accent-color: var(--brand); }
+  .budget-val { min-width: 56px; font-weight: 700; color: var(--brand-dark); font-size: 14px; text-align: right; }
+  .tabs { display: flex; gap: 6px; margin: 16px 0 12px; }
+  .tab {
+    flex: 1; text-align: center; padding: 9px 0; border-radius: 10px; font-size: 14px;
+    border: 1px solid var(--line); cursor: pointer; background: #fbfdfb; font-weight: 600;
+  }
+  .tab.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .go {
+    width: 100%; padding: 12px; border: none; border-radius: 12px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+    color: #fff; font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: 2px;
+    box-shadow: 0 4px 14px rgba(46,139,87,.28);
+  }
+  .go:hover { filter: brightness(1.06); }
+  .side .hint { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.6; }
+  /* ---------- main ---------- */
+  .main { flex: 1; padding: 26px 30px; max-width: 1180px; }
+  .topbar { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 18px; flex-wrap: wrap; gap: 8px; }
+  .topbar h2 { font-size: 22px; }
+  .topbar .meta { font-size: 13px; color: var(--muted); }
+  .banner { padding: 12px 16px; border-radius: 12px; margin-bottom: 16px; font-size: 14px; }
+  .banner.bad { background: #fdecea; color: var(--bad); border: 1px solid #f5c6c0; }
+  .banner.good { background: var(--brand-soft); color: var(--brand-dark); border: 1px solid #c3e2d1; }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 18px; }
+  .meal-card { background: var(--panel); border-radius: var(--radius); border: 1px solid var(--line); padding: 16px; }
+  .meal-card h3 { font-size: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+  .meal-card h3 .cost { font-size: 13px; color: var(--brand-dark); font-weight: 700; }
+  .meal-card ul { list-style: none; }
+  .meal-card li { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+  .meal-card li:last-child { border-bottom: none; }
+  .meal-card li .g { color: var(--muted); font-size: 12px; }
+  .role-tag { font-size: 11px; padding: 2px 7px; border-radius: 6px; background: var(--brand-soft); color: var(--brand-dark); margin-right: 8px; white-space: nowrap; }
+  /* summary panel */
+  .summary { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 18px; }
+  .summary h3 { font-size: 15px; margin-bottom: 14px; }
+  .stat-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .stat { flex: 1; min-width: 150px; background: #fbfdfb; border: 1px solid var(--line); border-radius: 11px; padding: 12px; }
+  .stat .k { font-size: 12px; color: var(--muted); }
+  .stat .v { font-size: 20px; font-weight: 800; margin: 4px 0; }
+  .stat .v small { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .bar { height: 8px; border-radius: 6px; background: #e9efe9; overflow: hidden; margin-top: 6px; }
+  .bar > i { display: block; height: 100%; border-radius: 6px; background: var(--brand); }
+  .macro { display: flex; height: 26px; border-radius: 8px; overflow: hidden; margin: 10px 0 6px; }
+  .macro i { display: block; height: 100%; }
+  .macro-legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); }
+  .macro-legend b { color: var(--ink); }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .adequacy { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+  .adq { background: #fbfdfb; border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; }
+  .adq .top { display: flex; justify-content: space-between; font-size: 12px; }
+  .adq .top b { font-size: 13px; }
+  .adq .pct { font-size: 12px; font-weight: 700; }
+  .adq .bar { height: 6px; margin-top: 5px; }
+  .pct.good { color: var(--good); } .pct.warn { color: var(--accent); } .pct.bad { color: var(--bad); }
+  /* week view */
+  .week-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+  .day-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+  .day-card .head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .day-card .head h3 { font-size: 15px; }
+  .day-card .head .cost { font-size: 12px; color: var(--brand-dark); font-weight: 700; }
+  .day-card .kcal { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .day-card ul { list-style: none; }
+  .day-card li { font-size: 12.5px; padding: 4px 0; border-bottom: 1px dashed var(--line); display: flex; justify-content: space-between; }
+  .day-card li:last-child { border-bottom: none; }
+  .day-card .meal-sep { font-size: 11px; color: var(--brand-dark); font-weight: 700; margin: 8px 0 2px; }
+  .diversity { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  .div-item { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; text-align: center; }
+  .div-item .d { font-size: 20px; font-weight: 800; color: var(--brand-dark); }
+  .div-item .k { font-size: 12px; color: var(--muted); }
+  .hide { display: none; }
+  @media (max-width: 900px) {
+    .wrap { flex-direction: column; }
+    .side { width: 100%; height: auto; position: static; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside class="side">
+    <h1><span class="leaf">🌿</span>家庭营养膳食规划</h1>
+    <div class="sub">基于膳食参考摄入量与多维约束的每日 / 每周配餐</div>
+
+    <div class="tabs">
+      <div class="tab on" data-mode="day">单日配餐</div>
+      <div class="tab" data-mode="week">周菜单</div>
+    </div>
+
+    <div class="field">
+      <label>家庭成员</label>
+      <select id="age_group"></select>
+    </div>
+    <div class="field">
+      <label>活动水平</label>
+      <select id="activity"></select>
+    </div>
+    <div class="field">
+      <label>膳食目标</label>
+      <select id="goal"></select>
+    </div>
+    <div class="field">
+      <label>每日预算（元）</label>
+      <div class="budget-row">
+        <input type="range" id="budget" min="10" max="60" value="25" step="1">
+        <span class="budget-val" id="budget_val">25 元</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>需规避的过敏原</label>
+      <div class="chips" id="allergens"></div>
+    </div>
+    <div class="field">
+      <label>排除食材</label>
+      <select id="exclude" multiple size="6"></select>
+    </div>
+    <button class="go" id="go">生 成 方 案</button>
+    <div class="hint">按膳食参考摄入量计算营养目标，求解热量区间、宏量营养素供能比、微量营养素达标与预算等多维约束，并保证一周内食材轮换与蛋白质来源多样化。</div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <h2 id="view_title">单日膳食方案</h2>
+      <div class="meta" id="view_meta"></div>
+    </div>
+    <div id="banner"></div>
+
+    <div id="day_view">
+      <div class="grid" id="meals"></div>
+      <div class="summary" id="day_summary"></div>
+    </div>
+
+    <div id="week_view" class="hide">
+      <div class="diversity" id="diversity"></div>
+      <div class="week-grid" id="week_grid"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const meta = { profiles: {}, activities: {}, goals: {}, allergens: [], nutrient_labels: {}, nutrient_order: [] };
+const state = { mode: "day", plan: null, week: null };
+
+function initMeta(m) {
+  meta.profiles = m.profiles; meta.activities = m.activities; meta.goals = m.goals;
+  meta.allergens = m.allergens; meta.nutrient_labels = m.nutrient_labels;
+  meta.nutrient_order = m.nutrient_order;
+  const sel = (id, map) => {
+    const el = $(id);
+    el.innerHTML = Object.entries(map).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+    return el;
+  };
+  sel("#age_group", m.profiles);
+  sel("#activity", m.activities);
+  sel("#goal", m.goals);
+  $("#allergens").innerHTML = m.allergens.map(a => `<span class="chip" data-a="${a}">${a}</span>`).join("");
+  document.querySelectorAll("#allergens .chip").forEach(c => {
+    c.onclick = () => c.classList.toggle("on");
+  });
+}
+
+async function loadFoods() {
+  const r = await fetch("/api/foods");
+  const d = await r.json();
+  $("#exclude").innerHTML = d.foods.map(f => `<option value="${f.id}">${f.name}</option>`).join("");
+}
+
+function collectParams() {
+  const allergens = [...document.querySelectorAll("#allergens .chip.on")].map(c => c.dataset.a);
+  const exclude = [...$("#exclude").selectedOptions].map(o => o.value);
+  return {
+    profile: {
+      age_group: $("#age_group").value,
+      activity: $("#activity").value,
+      goal: $("#goal").value,
+    },
+    budget: Number($("#budget").value),
+    allergens,
+    exclude,
+  };
+}
+
+function roleLabel(role) {
+  return { staple: "主食", protein: "主菜", dairy_egg: "蛋奶", veg_a: "蔬菜", veg_b: "蔬菜", oil: "油脂", fruit: "水果", nut: "坚果" }[role] || role;
+}
+
+function renderDay(r, req) {
+  const meals = { breakfast: [], lunch: [], dinner: [] };
+  r.items.forEach(it => {
+    (meals[it.meal] = meals[it.meal] || []).push(it);
+  });
+  const mealNames = { breakfast: "早餐", lunch: "午餐", dinner: "晚餐" };
+  $("#meals").innerHTML = ["breakfast", "lunch", "dinner"].map(m => `
+    <div class="meal-card">
+      <h3>${mealNames[m]}<span class="cost">¥${meals[m].reduce((s, i) => s + i.cost, 0).toFixed(1)}</span></h3>
+      <ul>${meals[m].map(i => `
+        <li><span><span class="role-tag">${roleLabel(i.role)}</span>${i.name}</span>
+        <span class="g">${i.grams}g · ¥${i.cost.toFixed(1)}</span></li>`).join("")}
+      </ul>
+    </div>`).join("");
+
+  const t = r.totals;
+  const rr = r.ratios;
+  const reqKcal = req.kcal;
+  const kcalPct = Math.min(100, Math.round(t.kcal / reqKcal * 100));
+  const pctCls = p => p >= 80 && p <= 120 ? "good" : (p >= 60 ? "warn" : "bad");
+  const adq = r.adequacy;
+  const order = meta.nutrient_order.filter(n => adq[n]);
+  $("#day_summary").innerHTML = `
+    <h3>营养汇总 · 总花费 ¥${t.cost.toFixed(1)}</h3>
+    <div class="stat-row">
+      <div class="stat"><div class="k">热量 / 目标</div>
+        <div class="v">${Math.round(t.kcal)}<small> / ${reqKcal} kcal</small></div>
+        <div class="bar"><i style="width:${kcalPct}%"></i></div></div>
+      <div class="stat"><div class="k">蛋白质</div><div class="v">${t.protein.toFixed(1)}<small>g</small></div></div>
+      <div class="stat"><div class="k">脂肪</div><div class="v">${t.fat.toFixed(1)}<small>g</small></div></div>
+      <div class="stat"><div class="k">碳水</div><div class="v">${t.carb.toFixed(1)}<small>g</small></div></div>
+      <div class="stat"><div class="k">膳食纤维</div><div class="v">${t.fiber.toFixed(1)}<small>g / ≥${req.fiber}g</small></div></div>
+    </div>
+    <div style="font-size:13px;font-weight:600;margin-top:8px">宏量营养素供能比</div>
+    <div class="macro">
+      <i style="width:${(rr.fat * 100).toFixed(1)}%;background:#d98e2b"></i>
+      <i style="width:${(rr.protein * 100).toFixed(1)}%;background:#2e8b57"></i>
+      <i style="width:${(rr.carb * 100).toFixed(1)}%;background:#5b8db8"></i>
+    </div>
+    <div class="macro-legend">
+      <span><span class="legend-dot" style="background:#d98e2b"></span>脂肪 <b>${(rr.fat * 100).toFixed(1)}%</b>（目标 20-30%）</span>
+      <span><span class="legend-dot" style="background:#2e8b57"></span>蛋白质 <b>${(rr.protein * 100).toFixed(1)}%</b>（目标 10-20%）</span>
+      <span><span class="legend-dot" style="background:#5b8db8"></span>碳水 <b>${(rr.carb * 100).toFixed(1)}%</b>（目标 50-65%）</span>
+    </div>
+    <h3 style="margin-top:16px">微量营养素达标度</h3>
+    <div class="adequacy">${order.map(n => {
+      const a = adq[n];
+      const label = meta.nutrient_labels[n] || n;
+      if (n === "sodium") {
+        const p = Math.round(a.pct);
+        return `<div class="adq"><div class="top"><span>${label}</span><span class="pct ${p > 100 ? 'warn' : 'good'}">${p}%</span></div>
+          <div class="bar"><i style="width:${Math.min(100, p)}%;${p > 100 ? 'background:#d98e2b' : ''}"></i></div>
+          <div style="font-size:11px;color:#6b7d70">${a.value}mg / 上限${a.max}mg</div></div>`;
+      }
+      const p = Math.round(a.pct);
+      return `<div class="adq"><div class="top"><span>${label}</span><span class="pct ${pctCls(p)}">${p}%</span></div>
+        <div class="bar"><i style="width:${Math.min(100, p)}%"></i></div>
+        <div style="font-size:11px;color:#6b7d70">${a.value} / 目标${a.target}</div></div>`;
+    }).join("")}</div>`;
+}
+
+function renderDayMeta(r, req) {
+  $("#view_title").textContent = "单日膳食方案";
+  $("#view_meta").textContent = `${req.profile_label} · 活动水平 ${meta.activities[state.params.profile.activity]} · ${meta.goals[state.params.profile.goal]} · 预算 ¥${state.params.budget}/日`;
+  const banner = $("#banner");
+  if (r.feasible) {
+    banner.className = "banner good";
+    banner.textContent = "方案已生成，满足热量、宏量营养素供能比与预算约束。";
+  } else {
+    banner.className = "banner bad";
+    banner.textContent = "当前参数下无法生成完全满足约束的方案：" + (r.reasons && r.reasons.length ? r.reasons.join("；") : "约束过紧");
+  }
+}
+
+const weekMetaOrder = ["kcal", "protein", "fat", "carb", "fiber"];
+
+function renderWeek(w, req) {
+  $("#view_title").textContent = "一周膳食菜单";
+  $("#view_meta").textContent = `${req.profile_label} · 全周 ${w.days.length} 天 · 周总花费 ¥${w.weekly_cost.toFixed(1)}`;
+  const d = w.diversity;
+  $("#diversity").innerHTML = `
+    <div class="div-item"><div class="d">${d.unique_foods}</div><div class="k">全周不重复食材</div></div>
+    <div class="div-item"><div class="d">${d.protein_kinds}/${d.protein_kinds_max}</div><div class="k">蛋白质来源类别</div></div>
+    <div class="div-item"><div class="d">${d.liver_count}</div><div class="k">肝脏类次数</div></div>
+    <div class="div-item"><div class="d">${d.repeat_servings}</div><div class="k">跨天复用份次</div></div>
+    <div class="div-item"><div class="d">¥${w.weekly_cost.toFixed(1)}</div><div class="k">一周总花费</div></div>`;
+  const meals = { breakfast: "早餐", lunch: "午餐", dinner: "晚餐" };
+  $("#week_grid").innerHTML = w.days.map(day => `
+    <div class="day-card">
+      <div class="head"><h3>${day.day_name}</h3><span class="cost">¥${day.cost.toFixed(1)}</span></div>
+      <div class="kcal">${Math.round(day.totals.kcal)} kcal · 蛋白 ${day.totals.protein.toFixed(1)}g / 脂肪 ${day.totals.fat.toFixed(1)}g / 碳水 ${day.totals.carb.toFixed(1)}g</div>
+      ${["breakfast", "lunch", "dinner"].map(m => {
+        const its = day.items.filter(i => i.meal === m);
+        if (!its.length) return "";
+        return `<div class="meal-sep">${meals[m]}</div><ul>${its.map(i => `
+          <li><span>${i.name}</span><span>${i.grams}g</span></li>`).join("")}</ul>`;
+      }).join("")}
+    </div>`).join("");
+  const banner = $("#banner");
+  if (w.feasible) {
+    banner.className = "banner good";
+    banner.textContent = "周菜单生成完毕：相邻两天不重复食材，午餐蛋白质类别逐日轮换，肝脏类每周至多 1 次。";
+  } else {
+    banner.className = "banner bad";
+    banner.textContent = "部分天数约束未完全满足，请调整参数。";
+  }
+}
+
+async function generate() {
+  $("#go").disabled = true;
+  const params = collectParams();
+  state.params = params;
+  try {
+    if (state.mode === "day") {
+      const r = await fetch("/api/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(params) });
+      const d = await r.json();
+      state.plan = d;
+      renderDayMeta(d, d.requirement);
+      renderDay(d, d.requirement);
+    } else {
+      const r = await fetch("/api/week", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(params) });
+      const d = await r.json();
+      state.week = d;
+      renderWeek(d, d.requirement);
+    }
+  } finally {
+    $("#go").disabled = false;
+  }
+}
+
+document.querySelectorAll(".tab").forEach(t => {
+  t.onclick = () => {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("on"));
+    t.classList.add("on");
+    state.mode = t.dataset.mode;
+    $("#day_view").classList.toggle("hide", state.mode !== "day");
+    $("#week_view").classList.toggle("hide", state.mode !== "week");
+    if (state.mode === "day" && state.plan) { renderDayMeta(state.plan, state.plan.requirement); renderDay(state.plan, state.plan.requirement); }
+    else if (state.mode === "week" && state.week) { renderWeek(state.week, state.week.requirement); }
+    else { generate(); }
+  };
+});
+
+$("#budget").oninput = () => { $("#budget_val").textContent = $("#budget").value + " 元"; };
+$("#go").onclick = generate;
+
+(async () => {
+  const m = await (await fetch("/api/meta")).json();
+  initMeta(m);
+  await loadFoods();
+  generate();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "nutrition-planner",
+  "version": "1.0.0",
+  "description": "家庭营养膳食规划系统",
+  "scripts": {
+    "dev": "node start.js",
+    "test": "node tests/run_tests.js"
+  },
+  "license": "MIT"
+}
