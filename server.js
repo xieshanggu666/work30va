@@ -6,6 +6,9 @@ const foodsMod = require("./engine/foods");
 const { getRequirement, PROFILE_KEYS, ACTIVITY_KEYS, GOAL_KEYS } = require("./engine/requirements");
 const { planDay } = require("./engine/constraints");
 const { weekPlan, DAY_NAMES } = require("./engine/menu");
+const { createHouseholdStore } = require("./engine/shopping");
+
+const household = createHouseholdStore();
 
 const arg = process.argv.find(a => a.startsWith("--port="));
 const PORT = arg ? parseInt(arg.slice(7), 10) : parseInt(process.env.PORT || "8074", 10);
@@ -100,6 +103,59 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    /* ---------- 家庭采购与库存 ---------- */
+    if (p === "/api/household" && req.method === "GET") {
+      return json(res, 200, household.summary());
+    }
+    if (p === "/api/household/settings" && req.method === "POST") {
+      const body = JSON.parse(await readBody(req));
+      return json(res, 200, household.setSettings(body));
+    }
+    if (p === "/api/household/members" && req.method === "POST") {
+      const body = JSON.parse(await readBody(req));
+      return json(res, 200, household.addMember(body.name));
+    }
+    if (p.startsWith("/api/household/members/") && req.method === "POST") {
+      const id = decodeURIComponent(p.split("/").pop());
+      const body = JSON.parse(await readBody(req));
+      if (body.action === "remove") return json(res, 200, household.removeMember(id));
+      return json(res, 200, household.updateMember(id, body.name));
+    }
+    if (p === "/api/household/auto-assign" && req.method === "POST") {
+      return json(res, 200, household.autoAssign());
+    }
+    if (p === "/api/household/lines/assign" && req.method === "POST") {
+      const body = JSON.parse(await readBody(req));
+      return json(res, 200, household.assignLine(body.line_id, body.member_id));
+    }
+    if (p === "/api/household/arrive" && req.method === "POST") {
+      const body = JSON.parse(await readBody(req));
+      return json(res, 200, household.arrive(body.line_id, {
+        arrived_grams: body.arrived_grams, cost: body.cost, force: !!body.force,
+      }));
+    }
+    if (p === "/api/household/stock-in" && req.method === "POST") {
+      const body = JSON.parse(await readBody(req));
+      return json(res, 200, household.stockIn(body.food_id, body.grams, {
+        cost: body.cost, kind: body.kind, force: !!body.force,
+      }));
+    }
+    if (p === "/api/household/week/attach" && req.method === "POST") {
+      const body = JSON.parse(await readBody(req));
+      return json(res, 200, household.attachWeek(body.week, body.params || {}));
+    }
+    if (p === "/api/household/consume" && req.method === "POST") {
+      const body = JSON.parse(await readBody(req));
+      return json(res, 200, household.consumeDay(body.day));
+    }
+    if (p === "/api/household/consume/undo" && req.method === "POST") {
+      const body = JSON.parse(await readBody(req));
+      return json(res, 200, household.undoConsume(body.day));
+    }
+    if (p === "/api/household/plan-remaining" && req.method === "POST") {
+      return json(res, 200, household.planRemaining());
+    }
+
     let f = p === "/" ? "/index.html" : p;
     const fp = path.normalize(path.join(WEB, f));
     if (!fp.startsWith(WEB)) return json(res, 403, { error: "forbidden" });
@@ -110,7 +166,8 @@ const server = http.createServer(async (req, res) => {
     }
     return json(res, 404, { error: "not found" });
   } catch (e) {
-    return json(res, 500, { error: e.message });
+    return json(res, e.code === 400 || e.code === 404 || e.code === 409 ? e.code : 500,
+      { error: e.message, ...(e.blocked ? { blocked: e.blocked } : {}) });
   }
 });
 

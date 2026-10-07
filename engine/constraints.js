@@ -63,26 +63,36 @@ function poolOf(slot, dayPools, meal) {
   return (key && dayPools[key]) ? dayPools[key] : slot.pool;
 }
 
-function pick(slot, taken, excludeIds, dayPools, meal) {
+/* 有库存时同槽位优先消耗库存食材；过敏原 / 周限次在候选遍历时一并跳过。
+   stock_only 时无库存候选一律不选（库存续配严格轮：失败后再放宽）。 */
+function pick(slot, taken, excludeIds, dayPools, meal, params, stockOnly) {
   const base = poolOf(slot, dayPools, meal);
-  const pool = base.filter(id => !taken.has(id) && !excludeIds.has(id));
-  if (pool.length === 0) return null;
-  return getFood(pool[0]);
+  const stockMap = params.stock_map || null;
+  const weeklyUsed = params.weekly_used || {};
+  const allergens = params.allergens || [];
+  let pool = base.filter(id => !taken.has(id) && !excludeIds.has(id));
+  if (stockMap) {
+    pool = pool.slice().sort((a, b) => (stockMap[b] > 0 ? 1 : 0) - (stockMap[a] > 0 ? 1 : 0));
+  }
+  for (const id of pool) {
+    const food = getFood(id);
+    if (food.weekly_limit && (weeklyUsed[food.id] || 0) >= food.weekly_limit) continue;
+    if (food.allergens.some(a => allergens.includes(a))) continue;
+    if (stockOnly && !(stockMap && stockMap[id] > 0)) continue;
+    return food;
+  }
+  return null;
 }
 
 function buildItems(params, req) {
   const excludeIds = new Set(params.exclude || []);
   const taken = new Set();
   const items = [];
-  const weeklyUsed = params.weekly_used || {};
   const dayPools = params.day_pools || null;
 
   const tryAdd = (slot, meal) => {
-    const food = pick(slot, taken, excludeIds, dayPools, meal);
+    const food = pick(slot, taken, excludeIds, dayPools, meal, params, !!params.stock_only);
     if (!food) return false;
-    const used = weeklyUsed[food.id] || 0;
-    if (food.weekly_limit && used >= food.weekly_limit) return false;
-    if (food.allergens.some(a => params.allergens.includes(a))) return false;
     taken.add(food.id);
     items.push({ meal, role: slot.role, food_id: food.id, name: food.name, grams: slot.grams, pool: poolOf(slot, dayPools, meal) });
     return true;
@@ -93,25 +103,34 @@ function buildItems(params, req) {
   DINNER_SLOTS.forEach(s => tryAdd(s, "dinner"));
   tryAdd(SNACK_SLOT, "breakfast");
 
-  /* 蛋白质主菜若全部被排除，退化为仅素食可食的组合 */
+  /* 蛋白质主菜若全部被排除，退化为仅素食可食的组合（库存严格轮不兜底） */
   const proteinCount = items.filter(i => i.role === "protein").length;
-  if (proteinCount === 0) {
+  if (proteinCount === 0 && !params.stock_only) {
     const vegExtra = getFood("tofu_south");
-    if (vegExtra && !excludeIds.has(vegExtra.id)) {
+    const allergens = params.allergens || [];
+    if (vegExtra && !excludeIds.has(vegExtra.id) && !vegExtra.allergens.some(a => allergens.includes(a))) {
       items.push({ meal: "lunch", role: "protein", food_id: vegExtra.id, name: vegExtra.name, grams: 120 });
     }
   }
   return items;
 }
 
-function totalOf(items) {
-  const t = { cost: 0 };
+/* 库存抵扣后的边际采购成本：库存覆盖的克重不计采购支出 */
+function purchaseCostFor(food, grams, stockMap) {
+  if (!stockMap) return costFor(food, grams);
+  const covered = Math.min(grams, stockMap[food.id] || 0);
+  return (food.cost * (grams - covered)) / 100;
+}
+
+function totalOf(items, stockMap) {
+  const t = { cost: 0, purchase_cost: 0 };
   for (const k of NUTRIENT_ORDER) t[k] = 0;
   for (const it of items) {
     const f = getFood(it.food_id);
     const n = nutrientsFor(f, it.grams);
     for (const k of NUTRIENT_ORDER) t[k] += n[k];
     t.cost += costFor(f, it.grams);
+    t.purchase_cost += purchaseCostFor(f, it.grams, stockMap);
   }
   return t;
 }
@@ -129,6 +148,7 @@ function adjust(items, req, budget, params) {
   const foodOf = id => getFood(id);
   const excludeSet = new Set(params.exclude || []);
   const allergenSet = new Set(params.allergens || []);
+  const stockMap = params.stock_map || null;
   const low = req.kcal * (1 - KCAL_TOL);
   const high = req.kcal * (1 + KCAL_TOL);
 
@@ -137,7 +157,7 @@ function adjust(items, req, budget, params) {
   while (changed && iters < 400) {
     changed = false;
     iters++;
-    const t = totalOf(items);
+    const t = totalOf(items, stockMap);
     const kcal = t.kcal;
     const r = ratios(t);
 
@@ -227,30 +247,31 @@ function adjust(items, req, budget, params) {
       if (staple.length) { staple[0].grams += 25; changed = true; }
       continue;
     }
-    /* 9. 预算超限：最贵项优先替换为同类更便宜食材，无替代再压缩克重 */
-    if (budget != null && t.cost > budget) {
+    /* 9. 预算超限：边际采购成本最高者优先替换（先消耗库存替代，再同类更便宜食材），无替代再压缩克重 */
+    if (budget != null && t.purchase_cost > budget) {
       const used = new Set(items.map(i => i.food_id));
       const costly = items
-        .map((it, idx) => ({ it, idx }))
-        .filter(x => x.it.grams >= MIN_GRAMS[x.it.role])
-        .sort((a, b) => costFor(foodOf(b.it.food_id), b.it.grams) - costFor(foodOf(a.it.food_id), a.it.grams));
+        .map((it, idx) => ({ it, idx, pc: purchaseCostFor(foodOf(it.food_id), it.grams, stockMap) }))
+        .filter(x => x.pc > 0 && x.it.grams >= MIN_GRAMS[x.it.role])
+        .sort((a, b) => b.pc - a.pc);
       if (costly.length) {
         const x = costly[0];
         const f = foodOf(x.it.food_id);
+        const altKey = c => purchaseCostFor(c, x.it.grams, stockMap);
         const alternates = FOODS.filter(c =>
-          c.cost < f.cost &&
           (!x.it.pool || x.it.pool.includes(c.id)) &&
           !used.has(c.id) &&
           !c.allergens.some(a => allergenSet.has(a)) &&
           !excludeSet.has(c.id) &&
           (!c.weekly_limit || (params.weekly_used || {})[c.id] < c.weekly_limit)
-        ).sort((a, b) => b.cost - a.cost);
+        ).map(c => ({ c, key: altKey(c), inStock: (stockMap && stockMap[c.id] > 0) ? 1 : 0 }))
+          .filter(o => o.key < x.pc - 1e-9)
+          .sort((a, b) => b.inStock - a.inStock || b.key - a.key);
         if (alternates.length) {
-          const alt = alternates[0];
+          const alt = alternates[0].c;
           used.delete(x.it.food_id);
           x.it.food_id = alt.id;
           x.it.name = alt.name;
-          used.add(alt.id);
           changed = true;
         } else if (x.it.grams - 10 >= MIN_GRAMS[x.it.role]) {
           x.it.grams -= 10;
@@ -301,14 +322,15 @@ function planDay(params) {
 
   adjust(items, req, budget, params);
 
-  const totals = totalOf(items);
+  const stockMap = params.stock_map || null;
+  const totals = totalOf(items, stockMap);
   const r = ratios(totals);
   const low = req.kcal * (1 - KCAL_TOL);
   const high = req.kcal * (1 + KCAL_TOL);
   const kcalOk = totals.kcal >= low && totals.kcal <= high;
   const fatOk = r.fat >= FAT_RATIO[0] && r.fat <= FAT_RATIO[1];
   const proteinOk = r.protein >= PROTEIN_RATIO[0] && r.protein <= PROTEIN_RATIO[1];
-  const budgetOk = budget == null || totals.cost <= budget * 1.02;
+  const budgetOk = budget == null || totals.purchase_cost <= budget * 1.02;
 
   const output = {
     feasible: kcalOk && fatOk && proteinOk && budgetOk,
@@ -319,6 +341,7 @@ function planDay(params) {
         meal: it.meal, meal_label: MEAL_LABEL[it.meal], role: it.role,
         food_id: it.food_id, name: it.name, grams: it.grams,
         cost: round1(costFor(f, it.grams)),
+        purchase_cost: round1(purchaseCostFor(f, it.grams, stockMap)),
       };
     }),
     totals: roundTotals(totals),
@@ -333,9 +356,9 @@ function planDay(params) {
 }
 
 function roundTotals(t) {
-  const out = { cost: round1(t.cost) };
+  const out = { cost: round1(t.cost), purchase_cost: round1(t.purchase_cost || 0) };
   for (const k of NUTRIENT_ORDER) out[k] = round1(t[k]);
   return out;
 }
 
-module.exports = { planDay, ratios, totalOf, adequacyOf, MEALS, MEAL_LABEL, K };
+module.exports = { planDay, ratios, totalOf, purchaseCostFor, adequacyOf, MEALS, MEAL_LABEL, K };
