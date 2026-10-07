@@ -63,11 +63,26 @@ function poolOf(slot, dayPools, meal) {
   return (key && dayPools[key]) ? dayPools[key] : slot.pool;
 }
 
-function pick(slot, taken, excludeIds, dayPools, meal) {
+function pick(slot, taken, excludeIds, dayPools, meal, params, stock) {
   const base = poolOf(slot, dayPools, meal);
   const pool = base.filter(id => !taken.has(id) && !excludeIds.has(id));
   if (pool.length === 0) return null;
-  return getFood(pool[0]);
+  const first = getFood(pool[0]);
+  /* 保持无库存时的历史语义：首选命中过敏原 / 周限次则放弃该槽位 */
+  const allergenSet = new Set((params && params.allergens) || []);
+  const weeklyUsed = (params && params.weekly_used) || {};
+  const blocked = f => f.allergens.some(a => allergenSet.has(a))
+    || (f.weekly_limit && (weeklyUsed[f.id] || 0) >= f.weekly_limit);
+  if (blocked(first)) return null;
+  /* 库存优先：在“可通过过滤”的候选中，把在库食材提为首选（无在库余量时保持池序） */
+  if (stock) {
+    const usable = pool.map(getFood).filter(f => f && !blocked(f));
+    if (usable.some(f => (stock[f.id] || 0) > 0)) {
+      usable.sort((a, b) => (stock[b.id] || 0) - (stock[a.id] || 0));
+      return usable[0];
+    }
+  }
+  return first;
 }
 
 function buildItems(params, req) {
@@ -76,13 +91,11 @@ function buildItems(params, req) {
   const items = [];
   const weeklyUsed = params.weekly_used || {};
   const dayPools = params.day_pools || null;
+  const stock = params.stock || null;
 
   const tryAdd = (slot, meal) => {
-    const food = pick(slot, taken, excludeIds, dayPools, meal);
+    const food = pick(slot, taken, excludeIds, dayPools, meal, params, stock);
     if (!food) return false;
-    const used = weeklyUsed[food.id] || 0;
-    if (food.weekly_limit && used >= food.weekly_limit) return false;
-    if (food.allergens.some(a => params.allergens.includes(a))) return false;
     taken.add(food.id);
     items.push({ meal, role: slot.role, food_id: food.id, name: food.name, grams: slot.grams, pool: poolOf(slot, dayPools, meal) });
     return true;
@@ -97,7 +110,8 @@ function buildItems(params, req) {
   const proteinCount = items.filter(i => i.role === "protein").length;
   if (proteinCount === 0) {
     const vegExtra = getFood("tofu_south");
-    if (vegExtra && !excludeIds.has(vegExtra.id)) {
+    const allergenSet = new Set(params.allergens || []);
+    if (vegExtra && !excludeIds.has(vegExtra.id) && !vegExtra.allergens.some(a => allergenSet.has(a))) {
       items.push({ meal: "lunch", role: "protein", food_id: vegExtra.id, name: vegExtra.name, grams: 120 });
     }
   }
@@ -116,6 +130,43 @@ function totalOf(items) {
   return t;
 }
 
+/* 库存抵扣后的净采购核算：同一食材先在库内扣减，超出部分才需要采购。
+   返回 purchase_cost（净采购额）与 remaining（方案消耗后的库存余量，毛重克）。 */
+function purchaseState(items, stock) {
+  const stock0 = stock || {};
+  const used = {};
+  let purchase = 0;
+  for (const it of items) {
+    const f = getFood(it.food_id);
+    used[f.id] = (used[f.id] || 0) + it.grams;
+  }
+  const remaining = {};
+  for (const [id, grams] of Object.entries(used)) {
+    const have = stock0[id] || 0;
+    const fromStock = Math.min(have, grams);
+    const buy = grams - fromStock;
+    remaining[id] = Math.max(0, have - grams);
+    if (buy > 0) purchase += costFor(getFood(id), buy);
+  }
+  for (const [id, g] of Object.entries(stock0)) {
+    if (used[id] == null) remaining[id] = g;
+  }
+  return { purchase_cost: round1(purchase), remaining };
+}
+
+function itemPurchaseCost(it, stock, stockLeft) {
+  const f = getFood(it.food_id);
+  const have = stockLeft ? (stockLeft[it.food_id] != null ? stockLeft[it.food_id] : (stock[it.food_id] || 0)) : 0;
+  const fromStock = Math.min(have, it.grams);
+  return costFor(f, it.grams - fromStock);
+}
+
+/* 单位有效采购成本（元/100g）：库存可覆盖的部分为 0，超出部分按库内单价 */
+function effectiveUnitCost(f, stockGrams, grams) {
+  const cover = Math.min(stockGrams || 0, grams);
+  return f.cost * (grams - cover) / grams;
+}
+
 function ratios(t) {
   const kcal = t.kcal || 1;
   return {
@@ -129,8 +180,22 @@ function adjust(items, req, budget, params) {
   const foodOf = id => getFood(id);
   const excludeSet = new Set(params.exclude || []);
   const allergenSet = new Set(params.allergens || []);
+  const stock = params.stock || null;
   const low = req.kcal * (1 - KCAL_TOL);
   const high = req.kcal * (1 + KCAL_TOL);
+
+  /* 按 items 顺序分配库存，计算每项的边际采购成本（库存内为 0） */
+  const marginalOf = () => {
+    const left = {};
+    if (stock) for (const k of Object.keys(stock)) left[k] = stock[k];
+    return items.map(it => {
+      const f = foodOf(it.food_id);
+      const have = left[it.food_id] || 0;
+      const cover = Math.min(have, it.grams);
+      if (stock) left[it.food_id] = have - cover;
+      return costFor(f, it.grams - cover);
+    });
+  };
 
   let changed = true;
   let iters = 0;
@@ -141,31 +206,44 @@ function adjust(items, req, budget, params) {
     const kcal = t.kcal;
     const r = ratios(t);
 
-    /* 1. 热量不足：按当前宏量短板分派加量目标 */
+    /* 1. 热量不足：按当前宏量短板分派加量目标，避免把已超界的宏量继续推高 */
     if (kcal < low) {
       const r2 = ratios(t);
       let pick = null;
-      const oilPick = items.filter(i => i.role === "oil" && i.grams < 60)
-        .sort((a, b) => foodOf(b.food_id).per100g.fat - foodOf(a.food_id).per100g.fat)[0];
-      const nutPick = items.filter(i => i.role === "nut" && i.grams < 30)
-        .sort((a, b) => foodOf(b.food_id).per100g.fat - foodOf(a.food_id).per100g.fat)[0];
+      const inStock = it => !!(stock && (stock[it.food_id] || 0) > 0);
+      /* 无库存时严格沿用历史排序，保证周菜单轮换确定性 */
+      const byKcal = (arr) => stock
+        ? arr.slice().sort((a, b) => Number(inStock(b)) - Number(inStock(a))
+            || foodOf(b.food_id).per100g.kcal - foodOf(a.food_id).per100g.kcal)[0]
+        : arr.slice().sort((a, b) => foodOf(b.food_id).per100g.kcal - foodOf(a.food_id).per100g.kcal)[0];
+      const oilSorter = (a, b) => stock
+        ? Number(inStock(b)) - Number(inStock(a)) || foodOf(b.food_id).per100g.fat - foodOf(a.food_id).per100g.fat
+        : foodOf(b.food_id).per100g.fat - foodOf(a.food_id).per100g.fat;
+      const oilPick = items.filter(i => i.role === "oil" && i.grams < 60).sort(oilSorter)[0];
+      const nutPick = items.filter(i => i.role === "nut" && i.grams < 30).sort(oilSorter)[0];
       if (r2.fat < FAT_RATIO[0] + 0.02) {
         pick = oilPick || nutPick;
       }
       if (!pick && r2.carb > CARB_RATIO[1] - 0.02) {
-        pick = oilPick || items.filter(i => ["protein", "dairy_egg"].includes(i.role) && i.grams < 300)
-          .sort((a, b) => foodOf(b.food_id).per100g.kcal - foodOf(a.food_id).per100g.kcal)[0];
+        pick = oilPick || byKcal(items.filter(i => ["protein", "dairy_egg"].includes(i.role) && i.grams < 300));
       }
       if (!pick) {
-        pick = items.filter(i => ["staple", "fruit", "nut", "dairy_egg", "protein"].includes(i.role))
-          .map(i => {
-            const f = foodOf(i.food_id);
-            const cap = i.role === "nut" ? 30 : 750;
-            const pure = f.per100g.kcal - 0.35 * f.per100g.protein * K.PROTEIN - 1.2 * f.per100g.fat * K.FAT;
-            return { it: i, s: pure / f.cost, cap };
-          })
-          .filter(x => x.it.grams < x.cap).sort((a, b) => b.s - a.s)[0];
-        if (pick) pick = pick.it;
+        if (stock) {
+          /* 库存模式：蛋白比接近上限时避免继续加高蛋白食材，在库食材优先 */
+          let roles = ["staple", "fruit", "nut", "dairy_egg", "protein"];
+          if (r2.protein > PROTEIN_RATIO[1] - 0.02) roles = ["staple", "fruit"];
+          pick = byKcal(items.filter(i => roles.includes(i.role) && i.grams < (i.role === "nut" ? 30 : 750)));
+        } else {
+          pick = items.filter(i => ["staple", "fruit", "nut", "dairy_egg", "protein"].includes(i.role))
+            .map(i => {
+              const f = foodOf(i.food_id);
+              const cap = i.role === "nut" ? 30 : 750;
+              const pure = f.per100g.kcal - 0.35 * f.per100g.protein * K.PROTEIN - 1.2 * f.per100g.fat * K.FAT;
+              return { it: i, s: pure / f.cost, cap };
+            })
+            .filter(x => x.it.grams < x.cap).sort((a, b) => b.s - a.s)[0];
+          if (pick) pick = pick.it;
+        }
       }
       if (pick) { pick.grams += 25; changed = true; }
       continue;
@@ -186,15 +264,27 @@ function adjust(items, req, budget, params) {
       if (targets.length) { targets[0].grams += 10; changed = true; }
       continue;
     }
-    /* 4. 脂肪供能比超限 */
+    /* 4. 脂肪供能比超限：油脂无论是否在库都直接削减（免费不代表不占脂肪供能比），
+          其次削花钱采购的高脂食材；无可削项再用在库主食稀释（不增加采购支出） */
     if (r.fat > FAT_RATIO[1]) {
-      const highFat = items
-        .filter(i => i.role === "oil" || foodOf(i.food_id).per100g.fat >= 8)
-        .filter(i => i.grams - 3 >= MIN_GRAMS[i.role]);
-      if (highFat.length) { highFat[0].grams -= 3; changed = true; }
+      const oils = items.filter(i => i.role === "oil" && i.grams - 2 >= MIN_GRAMS[i.role])
+        .sort((a, b) => foodOf(b.food_id).per100g.fat - foodOf(a.food_id).per100g.fat);
+      if (oils.length) { oils[0].grams -= 2; changed = true; }
       else {
-        const staple = items.filter(i => i.role === "staple" && i.grams < 400);
-        if (staple.length) { staple[0].grams += 25; changed = true; }
+        const margin = marginalOf();
+        const mcOf = it => margin[items.indexOf(it)] || 0;
+        const inStock = it => stock && (stock[it.food_id] || 0) >= it.grams;
+        const highFat = items
+          .filter(i => i.role === "oil" || foodOf(i.food_id).per100g.fat >= 8)
+          .filter(i => i.grams - 3 >= MIN_GRAMS[i.role])
+          .sort((a, b) => (mcOf(b) > 0) - (mcOf(a) > 0) || foodOf(b.food_id).per100g.fat - foodOf(a.food_id).per100g.fat);
+        if (highFat.length && (mcOf(highFat[0]) > 0 || !inStock(highFat[0]))) { highFat[0].grams -= 3; changed = true; }
+        else {
+          const staple = items.filter(i => i.role === "staple" && i.grams < 400)
+            .sort((a, b) => Number(inStock(b)) - Number(inStock(a)));
+          if (staple.length) { staple[0].grams += 25; changed = true; }
+          else if (highFat.length) { highFat[0].grams -= 3; changed = true; }
+        }
       }
       continue;
     }
@@ -227,26 +317,33 @@ function adjust(items, req, budget, params) {
       if (staple.length) { staple[0].grams += 25; changed = true; }
       continue;
     }
-    /* 9. 预算超限：最贵项优先替换为同类更便宜食材，无替代再压缩克重 */
-    if (budget != null && t.cost > budget) {
+    /* 9. 预算超限：净采购最贵项优先替换（在库余量项边际成本为 0 不会被选中），
+          优先替换为同类在库食材，其次更廉价食材，无替代再压缩克重 */
+    if (budget != null && purchaseState(items, stock).purchase_cost > budget) {
       const used = new Set(items.map(i => i.food_id));
+      const margin = marginalOf();
       const costly = items
-        .map((it, idx) => ({ it, idx }))
-        .filter(x => x.it.grams >= MIN_GRAMS[x.it.role])
-        .sort((a, b) => costFor(foodOf(b.it.food_id), b.it.grams) - costFor(foodOf(a.it.food_id), a.it.grams));
+        .map((it, idx) => ({ it, idx, mc: margin[idx] }))
+        .filter(x => x.it.grams >= MIN_GRAMS[x.it.role] && x.mc > 0)
+        .sort((a, b) => b.mc - a.mc);
       if (costly.length) {
         const x = costly[0];
         const f = foodOf(x.it.food_id);
         const alternates = FOODS.filter(c =>
-          c.cost < f.cost &&
           (!x.it.pool || x.it.pool.includes(c.id)) &&
           !used.has(c.id) &&
           !c.allergens.some(a => allergenSet.has(a)) &&
           !excludeSet.has(c.id) &&
           (!c.weekly_limit || (params.weekly_used || {})[c.id] < c.weekly_limit)
-        ).sort((a, b) => b.cost - a.cost);
+        ).map(c => ({
+          c,
+          eff: stock ? effectiveUnitCost(c, stock[c.id] || 0, x.it.grams) : c.cost,
+          inStock: stock && (stock[c.id] || 0) > 0,
+        }))
+          .filter(o => o.eff < x.mc / (x.it.grams / 100))
+          .sort((a, b) => Number(b.inStock) - Number(a.inStock) || a.eff - b.eff || b.c.cost - a.c.cost);
         if (alternates.length) {
-          const alt = alternates[0];
+          const alt = alternates[0].c;
           used.delete(x.it.food_id);
           x.it.food_id = alt.id;
           x.it.name = alt.name;
@@ -303,12 +400,15 @@ function planDay(params) {
 
   const totals = totalOf(items);
   const r = ratios(totals);
+  const stock = params.stock || null;
+  const purchase = purchaseState(items, stock);
   const low = req.kcal * (1 - KCAL_TOL);
   const high = req.kcal * (1 + KCAL_TOL);
   const kcalOk = totals.kcal >= low && totals.kcal <= high;
   const fatOk = r.fat >= FAT_RATIO[0] && r.fat <= FAT_RATIO[1];
   const proteinOk = r.protein >= PROTEIN_RATIO[0] && r.protein <= PROTEIN_RATIO[1];
-  const budgetOk = budget == null || totals.cost <= budget * 1.02;
+  /* 预算口径为库存抵扣后的净采购额，与家庭采购支出同步 */
+  const budgetOk = budget == null || purchase.purchase_cost <= budget * 1.02;
 
   const output = {
     feasible: kcalOk && fatOk && proteinOk && budgetOk,
@@ -322,13 +422,16 @@ function planDay(params) {
       };
     }),
     totals: roundTotals(totals),
+    purchase_cost: purchase.purchase_cost,
+    stock_used: stock ? round1(totals.cost - purchase.purchase_cost) : 0,
+    stock_remaining: stock ? purchase.remaining : null,
     ratios: { fat: r.fat, protein: r.protein, carb: r.carb },
     adequacy: adequacyOf(totals, req),
   };
   if (!kcalOk) output.reasons.push("热量未落在目标区间");
   if (!fatOk) output.reasons.push("脂肪供能比偏离 20%-30% 区间");
   if (!proteinOk) output.reasons.push("蛋白质供能比偏离 10%-20% 区间");
-  if (!budgetOk) output.reasons.push("预算超限");
+  if (!budgetOk) output.reasons.push("净采购预算超限");
   return output;
 }
 
@@ -338,4 +441,4 @@ function roundTotals(t) {
   return out;
 }
 
-module.exports = { planDay, ratios, totalOf, adequacyOf, MEALS, MEAL_LABEL, K };
+module.exports = { planDay, ratios, totalOf, purchaseState, adequacyOf, MEALS, MEAL_LABEL, K };

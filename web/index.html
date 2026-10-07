@@ -123,6 +123,55 @@
   .div-item { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px 16px; text-align: center; }
   .div-item .d { font-size: 20px; font-weight: 800; color: var(--brand-dark); }
   .div-item .k { font-size: 12px; color: var(--muted); }
+  /* household: procurement & inventory */
+  .hh-section { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px; }
+  .hh-section > h3 { font-size: 15px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .hh-section > h3 .count { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .hh-budget { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; }
+  .b-card { background: #fbfdfb; border: 1px solid var(--line); border-radius: 11px; padding: 11px 13px; }
+  .b-card .k { font-size: 12px; color: var(--muted); }
+  .b-card .v { font-size: 19px; font-weight: 800; margin-top: 3px; }
+  .b-card .v.bad { color: var(--bad); }
+  .b-card .v.good { color: var(--brand-dark); }
+  .member-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+  .member-card { background: #fbfdfb; border: 1px solid var(--line); border-radius: 11px; padding: 11px 13px; position: relative; }
+  .member-card .nm { font-weight: 700; font-size: 14px; }
+  .member-card .pf { font-size: 12px; color: var(--muted); margin: 3px 0 6px; }
+  .member-card .ag { display: flex; flex-wrap: wrap; gap: 4px; }
+  .mini-tag { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #fdecea; color: var(--bad); border: 1px solid #f5c6c0; }
+  .mini-tag.ok { background: var(--brand-soft); color: var(--brand-dark); border-color: #c3e2d1; }
+  .icon-btn { border: 1px solid var(--line); background: #fbfdfb; border-radius: 8px; padding: 3px 9px; font-size: 12px; cursor: pointer; color: var(--muted); }
+  .icon-btn:hover { border-color: var(--brand); color: var(--brand-dark); }
+  .icon-btn.danger:hover { border-color: var(--bad); color: var(--bad); }
+  .member-card .ops { position: absolute; top: 10px; right: 10px; display: flex; gap: 5px; }
+  .hh-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .btn { border: 1px solid var(--brand); background: var(--brand); color: #fff; border-radius: 9px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn.ghost { background: #fbfdfb; color: var(--brand-dark); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.warn { border-color: var(--accent); background: var(--accent); }
+  table.hh-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.hh-table th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 7px 8px; border-bottom: 1px solid var(--line); }
+  table.hh-table td { padding: 8px; border-bottom: 1px dashed var(--line); vertical-align: middle; }
+  table.hh-table tr:last-child td { border-bottom: none; }
+  .status-pill { font-size: 11px; padding: 2px 9px; border-radius: 999px; font-weight: 600; }
+  .status-pill.pending { background: #fdf3e3; color: #a86a1c; border: 1px solid #f0d8ae; }
+  .status-pill.arrived { background: var(--brand-soft); color: var(--brand-dark); border: 1px solid #c3e2d1; }
+  select.mini, input.mini { border: 1px solid var(--line); border-radius: 7px; padding: 4px 7px; font-size: 12px; background: #fbfdfb; color: var(--ink); }
+  .warn-list { display: flex; flex-direction: column; gap: 8px; }
+  .warn-item { padding: 9px 13px; border-radius: 10px; font-size: 13px; display: flex; gap: 8px; align-items: flex-start; }
+  .warn-item.danger { background: #fdecea; color: var(--bad); border: 1px solid #f5c6c0; }
+  .warn-item.warn { background: #fdf3e3; color: #8a5a16; border: 1px solid #f0d8ae; }
+  .day-consume { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: #fbfdfb; margin-bottom: 8px; font-size: 13px; }
+  .day-consume.done { background: var(--brand-soft); border-color: #c3e2d1; }
+  .day-consume .info b { font-size: 13px; }
+  .day-consume .info span { color: var(--muted); font-size: 12px; margin-left: 8px; }
+  /* modal */
+  .modal-mask { position: fixed; inset: 0; background: rgba(30,45,36,.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
+  .modal { background: var(--panel); border-radius: 14px; width: min(460px, 92vw); padding: 20px 22px; box-shadow: 0 18px 50px rgba(0,0,0,.2); }
+  .modal h3 { font-size: 16px; margin-bottom: 14px; }
+  .modal .field { margin-bottom: 12px; }
+  .modal .ops { display: flex; justify-content: flex-end; gap: 9px; margin-top: 16px; }
+  .modal .cancel { border: 1px solid var(--line); background: #fbfdfb; color: var(--muted); }
   .hide { display: none; }
   @media (max-width: 900px) {
     .wrap { flex-direction: column; }
@@ -140,10 +189,12 @@
     <div class="tabs">
       <div class="tab on" data-mode="day">单日配餐</div>
       <div class="tab" data-mode="week">周菜单</div>
+      <div class="tab" data-mode="household">采购与库存</div>
     </div>
 
+    <div id="plan_inputs">
     <div class="field">
-      <label>家庭成员</label>
+      <label>家庭成员（单人参考画像）</label>
       <select id="age_group"></select>
     </div>
     <div class="field">
@@ -162,15 +213,16 @@
       </div>
     </div>
     <div class="field">
-      <label>需规避的过敏原</label>
+      <label>需规避的过敏原（采购视图下自动并入全家清单）</label>
       <div class="chips" id="allergens"></div>
     </div>
     <div class="field">
       <label>排除食材</label>
       <select id="exclude" multiple size="6"></select>
     </div>
+    </div>
     <button class="go" id="go">生 成 方 案</button>
-    <div class="hint">按膳食参考摄入量计算营养目标，求解热量区间、宏量营养素供能比、微量营养素达标与预算等多维约束，并保证一周内食材轮换与蛋白质来源多样化。</div>
+    <div class="hint" id="plan_hint">按膳食参考摄入量计算营养目标，求解热量区间、宏量营养素供能比、微量营养素达标与预算等多维约束，并保证一周内食材轮换与蛋白质来源多样化。在「采购与库存」页可维护全家成员、生成分工采购清单、确认到货与按配餐消耗，库存会自动抵扣预算并驱动后续配餐。</div>
   </aside>
 
   <main class="main">
@@ -186,17 +238,65 @@
     </div>
 
     <div id="week_view" class="hide">
+      <div class="hh-toolbar" id="week_toolbar">
+        <button class="btn" id="to_household">🛒 据此生成分工采购清单</button>
+      </div>
       <div class="diversity" id="diversity"></div>
       <div class="week-grid" id="week_grid"></div>
     </div>
+
+    <div id="household_view" class="hide">
+      <div id="hh_warn"></div>
+
+      <div class="hh-section">
+        <h3>💰 本周预算 <span class="count" id="hh_cycle_label"></span></h3>
+        <div class="hh-budget" id="hh_budget"></div>
+        <div class="hh-toolbar" style="margin:12px 0 0">
+          <button class="btn ghost" id="hh_edit_budget">调整周预算</button>
+          <button class="btn ghost" id="hh_new_cycle">开启新一周（库存结转）</button>
+        </div>
+      </div>
+
+      <div class="hh-section">
+        <h3>👨‍👩‍👧 家庭成员与过敏原 <span class="count" id="hh_family_sub"></span></h3>
+        <div class="member-grid" id="hh_members"></div>
+        <div class="hh-toolbar" style="margin:12px 0 0">
+          <button class="btn" id="hh_add_member">＋ 添加成员</button>
+        </div>
+      </div>
+
+      <div class="hh-section">
+        <h3>📋 周菜单分工采购 <span class="count" id="hh_shop_sub"></span></h3>
+        <div class="hh-toolbar">
+          <button class="btn" id="hh_build">🔄 按周菜单生成 / 刷新采购清单</button>
+          <button class="btn ghost" id="hh_add_item">＋ 手动添加采购项</button>
+        </div>
+        <div id="hh_shop_table"></div>
+      </div>
+
+      <div class="hh-section">
+        <h3>🍱 按配餐确认消耗 <span class="count">到货齐全后逐日确认，自动扣库存并累计周限次</span></h3>
+        <div id="hh_days"></div>
+      </div>
+
+      <div class="hh-section">
+        <h3>🧺 家庭库存 <span class="count" id="hh_stock_sub"></span></h3>
+        <div class="hh-toolbar">
+          <button class="btn ghost" id="hh_add_stock">期初 / 盘库录入</button>
+        </div>
+        <div id="hh_stock_table"></div>
+      </div>
+    </div>
   </main>
 </div>
+<div id="modal_root"></div>
 
 <script>
 "use strict";
 const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
 const meta = { profiles: {}, activities: {}, goals: {}, allergens: [], nutrient_labels: {}, nutrient_order: [] };
-const state = { mode: "day", plan: null, week: null };
+const state = { mode: "day", plan: null, week: null, params: null, household: null };
 
 function initMeta(m) {
   meta.profiles = m.profiles; meta.activities = m.activities; meta.goals = m.goals;
@@ -237,6 +337,30 @@ function collectParams() {
   };
 }
 
+async function api(path, method = "GET", body) {
+  const opt = { method, headers: { "Content-Type": "application/json" } };
+  if (body !== undefined) opt.body = JSON.stringify(body);
+  const r = await fetch(path, opt);
+  const d = await r.json();
+  if (!r.ok) throw Object.assign(new Error(d.error || "请求失败"), { data: d });
+  return d;
+}
+
+/* 配餐与家庭库存联动：过敏原取全家并集，库存优先抵扣，周限次累计 */
+function paramsWithHousehold(params) {
+  const h = state.household;
+  if (!h || h.state.members.length === 0) return params;
+  const merged = {
+    ...params,
+    allergens: [...new Set([...(params.allergens || []), ...(h.family_allergens || [])])],
+  };
+  if (state.mode === "week" || state.mode === "day") {
+    merged.stock = h.sync.stock;
+    merged.weekly_used = h.sync.weekly_used;
+  }
+  return merged;
+}
+
 function roleLabel(role) {
   return { staple: "主食", protein: "主菜", dairy_egg: "蛋奶", veg_a: "蔬菜", veg_b: "蔬菜", oil: "油脂", fruit: "水果", nut: "坚果" }[role] || role;
 }
@@ -264,7 +388,7 @@ function renderDay(r, req) {
   const adq = r.adequacy;
   const order = meta.nutrient_order.filter(n => adq[n]);
   $("#day_summary").innerHTML = `
-    <h3>营养汇总 · 总花费 ¥${t.cost.toFixed(1)}</h3>
+    <h3>营养汇总 · 菜单成本 ¥${t.cost.toFixed(1)}${r.purchase_cost != null && r.purchase_cost !== t.cost ? ` · 净采购 ¥${r.purchase_cost.toFixed(1)}（库存抵扣 ¥${(r.stock_used || 0).toFixed(1)}）` : ""}</h3>
     <div class="stat-row">
       <div class="stat"><div class="k">热量 / 目标</div>
         <div class="v">${Math.round(t.kcal)}<small> / ${reqKcal} kcal</small></div>
@@ -319,18 +443,19 @@ const weekMetaOrder = ["kcal", "protein", "fat", "carb", "fiber"];
 
 function renderWeek(w, req) {
   $("#view_title").textContent = "一周膳食菜单";
-  $("#view_meta").textContent = `${req.profile_label} · 全周 ${w.days.length} 天 · 周总花费 ¥${w.weekly_cost.toFixed(1)}`;
+  $("#view_meta").textContent = `${req.profile_label} · 全周 ${w.days.length} 天 · 周菜单成本 ¥${w.weekly_cost.toFixed(1)}${w.weekly_purchase_cost != null && w.weekly_purchase_cost !== w.weekly_cost ? ` · 库存抵扣后净采购 ¥${w.weekly_purchase_cost.toFixed(1)}` : ""}`;
   const d = w.diversity;
   $("#diversity").innerHTML = `
     <div class="div-item"><div class="d">${d.unique_foods}</div><div class="k">全周不重复食材</div></div>
     <div class="div-item"><div class="d">${d.protein_kinds}/${d.protein_kinds_max}</div><div class="k">蛋白质来源类别</div></div>
     <div class="div-item"><div class="d">${d.liver_count}</div><div class="k">肝脏类次数</div></div>
     <div class="div-item"><div class="d">${d.repeat_servings}</div><div class="k">跨天复用份次</div></div>
-    <div class="div-item"><div class="d">¥${w.weekly_cost.toFixed(1)}</div><div class="k">一周总花费</div></div>`;
+    <div class="div-item"><div class="d">¥${w.weekly_cost.toFixed(1)}</div><div class="k">菜单总成本</div></div>
+    ${w.weekly_purchase_cost != null ? `<div class="div-item"><div class="d">¥${w.weekly_purchase_cost.toFixed(1)}</div><div class="k">库存抵扣后净采购</div></div>` : ""}`;
   const meals = { breakfast: "早餐", lunch: "午餐", dinner: "晚餐" };
   $("#week_grid").innerHTML = w.days.map(day => `
     <div class="day-card">
-      <div class="head"><h3>${day.day_name}</h3><span class="cost">¥${day.cost.toFixed(1)}</span></div>
+      <div class="head"><h3>${day.day_name}</h3><span class="cost">¥${day.cost.toFixed(1)}${day.purchase_cost != null && day.purchase_cost !== day.cost ? ` / 采购¥${day.purchase_cost.toFixed(1)}` : ""}</span></div>
       <div class="kcal">${Math.round(day.totals.kcal)} kcal · 蛋白 ${day.totals.protein.toFixed(1)}g / 脂肪 ${day.totals.fat.toFixed(1)}g / 碳水 ${day.totals.carb.toFixed(1)}g</div>
       ${["breakfast", "lunch", "dinner"].map(m => {
         const its = day.items.filter(i => i.meal === m);
@@ -342,7 +467,7 @@ function renderWeek(w, req) {
   const banner = $("#banner");
   if (w.feasible) {
     banner.className = "banner good";
-    banner.textContent = "周菜单生成完毕：相邻两天不重复食材，午餐蛋白质类别逐日轮换，肝脏类每周至多 1 次。";
+    banner.textContent = `周菜单生成完毕：相邻两天不重复食材，午餐蛋白质类别逐日轮换，肝脏类每周至多 1 次。${w.weekly_purchase_cost != null && w.weekly_purchase_cost < w.weekly_cost ? "库存已优先抵扣，净采购额见上。" : "可在下方生成分工采购清单。"}`;
   } else {
     banner.className = "banner bad";
     banner.textContent = "部分天数约束未完全满足，请调整参数。";
@@ -351,46 +476,320 @@ function renderWeek(w, req) {
 
 async function generate() {
   $("#go").disabled = true;
-  const params = collectParams();
+  const params = paramsWithHousehold(collectParams());
   state.params = params;
   try {
     if (state.mode === "day") {
-      const r = await fetch("/api/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(params) });
-      const d = await r.json();
+      const d = await api("/api/plan", "POST", params);
       state.plan = d;
       renderDayMeta(d, d.requirement);
       renderDay(d, d.requirement);
     } else {
-      const r = await fetch("/api/week", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(params) });
-      const d = await r.json();
+      const d = await api("/api/week", "POST", params);
       state.week = d;
       renderWeek(d, d.requirement);
     }
+  } catch (e) {
+    const banner = $("#banner");
+    banner.className = "banner bad";
+    banner.textContent = "生成失败：" + e.message;
   } finally {
     $("#go").disabled = false;
   }
 }
 
-document.querySelectorAll(".tab").forEach(t => {
-  t.onclick = () => {
-    document.querySelectorAll(".tab").forEach(x => x.classList.remove("on"));
-    t.classList.add("on");
-    state.mode = t.dataset.mode;
-    $("#day_view").classList.toggle("hide", state.mode !== "day");
-    $("#week_view").classList.toggle("hide", state.mode !== "week");
-    if (state.mode === "day" && state.plan) { renderDayMeta(state.plan, state.plan.requirement); renderDay(state.plan, state.plan.requirement); }
-    else if (state.mode === "week" && state.week) { renderWeek(state.week, state.week.requirement); }
-    else { generate(); }
-  };
+function switchMode(mode) {
+  state.mode = mode;
+  $$(".tab").forEach(x => x.classList.toggle("on", x.dataset.mode === mode));
+  $("#day_view").classList.toggle("hide", mode !== "day");
+  $("#week_view").classList.toggle("hide", mode !== "week");
+  $("#household_view").classList.toggle("hide", mode !== "household");
+  $("#plan_inputs").classList.toggle("hide", mode === "household");
+  $("#go").classList.toggle("hide", mode === "household");
+  if (mode === "household") {
+    $("#view_title").textContent = "家庭采购与库存";
+    $("#view_meta").textContent = "按周菜单分工采购 · 确认到货 · 按配餐消耗 · 库存同步预算与后续配餐";
+    renderHousehold();
+  } else if (mode === "day" && state.plan) { renderDayMeta(state.plan, state.plan.requirement); renderDay(state.plan, state.plan.requirement); }
+  else if (mode === "week" && state.week) { renderWeek(state.week, state.week.requirement); }
+  else { generate(); }
+}
+
+$$(".tab").forEach(t => {
+  t.onclick = () => switchMode(t.dataset.mode);
 });
 
 $("#budget").oninput = () => { $("#budget_val").textContent = $("#budget").value + " 元"; };
 $("#go").onclick = generate;
+$("#to_household").onclick = async () => {
+  await buildShoppingFromWeek();
+  switchMode("household");
+};
+
+/* ===================== 家庭采购与库存 ===================== */
+
+async function loadHousehold() {
+  state.household = await api("/api/household");
+  if (state.mode === "household") renderHousehold();
+}
+
+async function hhCall(path, body, method = "POST") {
+  try {
+    state.household = await api(path, method, body);
+    renderHousehold();
+    return true;
+  } catch (e) {
+    alert(e.message);
+    return false;
+  }
+}
+
+function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+function renderHousehold() {
+  const h = state.household;
+  if (!h) return;
+  $("#hh_cycle_label").textContent = `第 ${h.state.cycle_no} 周`;
+  renderWarnings(h);
+  renderBudget(h);
+  renderMembers(h);
+  renderShopping(h);
+  renderDays(h);
+  renderStock(h);
+}
+
+function renderWarnings(h) {
+  const el = $("#hh_warn");
+  if (!h.warnings.length) {
+    el.innerHTML = `<div class="banner good" style="margin-bottom:16px">✅ 无预算超支、缺料与过敏风险；库存与后续配餐已同步。</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="warn-list" style="margin-bottom:16px">${h.warnings.map(w => `
+    <div class="warn-item ${w.level}"><span>${w.level === "danger" ? "⛔" : "⚠️"}</span><span>${esc(w.text)}</span></div>`).join("")}</div>`;
+}
+
+function renderBudget(h) {
+  const b = h.budget;
+  $("#hh_budget").innerHTML = `
+    <div class="b-card"><div class="k">周预算</div><div class="v">¥${b.budget.toFixed(0)}</div></div>
+    <div class="b-card"><div class="k">已采购支出</div><div class="v good">¥${b.spent.toFixed(1)}</div>
+      <div style="font-size:11px;color:#6b7d70">较预估 ${b.price_delta >= 0 ? "+" : ""}¥${b.price_delta.toFixed(1)}</div></div>
+    <div class="b-card"><div class="k">待买预估占用</div><div class="v">¥${b.committed.toFixed(1)}</div></div>
+    <div class="b-card"><div class="k">预计本周总支出</div><div class="v ${b.over ? "bad" : "good"}">¥${b.projected.toFixed(1)}</div></div>
+    <div class="b-card"><div class="k">预算余额</div><div class="v ${b.remaining < 0 ? "bad" : "good"}">${b.remaining < 0 ? "-" : ""}¥${Math.abs(b.remaining).toFixed(1)}</div></div>
+    <div class="b-card"><div class="k">库存估值</div><div class="v">¥${h.inventory_value.toFixed(1)}</div></div>`;
+}
+
+function renderMembers(h) {
+  $("#hh_family_sub").textContent = h.state.members.length
+    ? `· 全家规避：${h.family_allergens.length ? h.family_allergens.join("、") : "无"}`
+    : "· 尚未添加成员";
+  $("#hh_members").innerHTML = h.state.members.map(m => `
+    <div class="member-card">
+      <div class="ops">
+        <button class="icon-btn" data-act="edit-member" data-id="${m.id}">编辑</button>
+        <button class="icon-btn danger" data-act="del-member" data-id="${m.id}">删除</button>
+      </div>
+      <div class="nm">${esc(m.name)}</div>
+      <div class="pf">${esc(meta.profiles[m.profile.age_group] || m.profile.age_group)} · ${esc(meta.activities[m.profile.activity] || "")} · ${esc(meta.goals[m.profile.goal] || "")}</div>
+      <div class="ag">${(m.allergens.length ? m.allergens : ["无过敏原"]).map(a => `<span class="mini-tag ${a === "无过敏原" ? "ok" : ""}">${esc(a)}</span>`).join("")}</div>
+    </div>`).join("") || `<div style="font-size:13px;color:#6b7d70">添加家庭成员并登记过敏原，采购与配餐将自动规避全家过敏原并集。</div>`;
+  $$("#hh_members [data-act='edit-member']").forEach(b => b.onclick = () => memberModal(h.state.members.find(m => m.id === Number(b.dataset.id))));
+  $$("#hh_members [data-act='del-member']").forEach(b => b.onclick = async () => {
+    if (!confirm("删除该成员？其名下采购任务将改为未分配。")) return;
+    await hhCall(`/api/household/members/${b.dataset.id}`, undefined, "DELETE");
+  });
+}
+
+function memberOptions(h, selected) {
+  return `<option value="">未分配</option>` + h.state.members.map(m =>
+    `<option value="${m.id}" ${selected === m.id ? "selected" : ""}>${esc(m.name)}</option>`).join("");
+}
+
+function renderShopping(h) {
+  const items = h.shopping;
+  const pend = items.filter(i => i.status === "pending");
+  const arr = items.filter(i => i.status === "arrived");
+  $("#hh_shop_sub").textContent = `· ${pend.length} 项待买 / ${arr.length} 项已到货 · 待买 ¥${h.budget.committed.toFixed(1)}`;
+  if (!items.length) {
+    $("#hh_shop_table").innerHTML = `<div style="font-size:13px;color:#6b7d70">在「周菜单」页生成方案后点击「据此生成分工采购清单」，系统会按在库与待买自动抵扣、加 10% 安全余量并按成员负载分工。</div>`;
+    return;
+  }
+  $("#hh_shop_table").innerHTML = `<table class="hh-table">
+    <tr><th>状态</th><th>食材</th><th>数量</th><th>预估 / 实付</th><th>负责人</th><th>操作</th></tr>
+    ${items.map(it => `
+    <tr style="${it.allergen_flag ? "background:#fff7f6" : ""}">
+      <td><span class="status-pill ${it.status}">${it.status === "pending" ? "待买" : "已到货"}</span></td>
+      <td>${esc(it.name)}${it.source === "manual" ? ' <span class="mini-tag ok">手动</span>' : ""}${it.allergen_flag ? ` <span class="mini-tag">含过敏原</span>` : ""}</td>
+      <td>${it.status === "arrived" ? `${it.arrived_grams}g（订${it.grams}g）` : `${it.grams}g`}</td>
+      <td>¥${it.est_cost.toFixed(1)}${it.status === "arrived" ? ` / <b>¥${it.actual_cost.toFixed(1)}</b>` : ""}</td>
+      <td>${it.status === "pending"
+        ? `<select class="mini" data-assign="${it.id}">${memberOptions(h, it.assignee)}</select>`
+        : esc(it.assignee_name || "—")}</td>
+      <td>${it.status === "pending"
+        ? `<button class="icon-btn" data-act="arrive" data-id="${it.id}">确认到货</button> <button class="icon-btn danger" data-act="del-item" data-id="${it.id}">删除</button>`
+        : ""}</td>
+    </tr>`).join("")}
+  </table>`;
+  $$("select[data-assign]").forEach(sel => sel.onchange = () =>
+    hhCall(`/api/household/shopping/${sel.dataset.assign}/assign`, { assignee: sel.value ? Number(sel.value) : null }));
+  $$("[data-act='arrive']").forEach(b => b.onclick = () => arriveModal(h.shopping.find(i => i.id === Number(b.dataset.id))));
+  $$("[data-act='del-item']").forEach(b => b.onclick = async () => {
+    if (!confirm("删除该采购任务？已到货任务删除会影响库存核算。")) return;
+    await hhCall(`/api/household/shopping/${b.dataset.id}`, undefined, "DELETE");
+  });
+}
+
+function renderDays(h) {
+  const el = $("#hh_days");
+  if (!h.week || !h.week.plan) {
+    el.innerHTML = `<div style="font-size:13px;color:#6b7d70">点击上方「按周菜单生成 / 刷新采购清单」后，可在此逐日确认到货食材的实际消耗。</div>`;
+    return;
+  }
+  el.innerHTML = h.week.plan.days.map((day, idx) => {
+    const done = h.consumed_days.includes(idx);
+    return `<div class="day-consume ${done ? "done" : ""}">
+      <div class="info"><b>${day.day_name}</b><span>${day.items.length} 项 · 菜单 ¥${day.cost.toFixed(1)}${day.purchase_cost != null ? ` · 净采购 ¥${day.purchase_cost.toFixed(1)}` : ""}</span>${done ? '<span class="mini-tag ok">已消耗并扣库存</span>' : ""}</div>
+      <button class="btn ${done ? "ghost" : ""}" data-consume-day="${idx}" ${done ? "disabled" : ""}>${done ? "已确认" : "确认当日消耗"}</button>
+    </div>`;
+  }).join("");
+  $$("[data-consume-day]").forEach(b => b.onclick = () => hhCall(`/api/household/consume/day/${b.dataset.consume_day}`, {}));
+}
+
+function renderStock(h) {
+  $("#hh_stock_sub").textContent = h.stock.length
+    ? `· ${h.stock.length} 种食材在库 · 估值 ¥${h.inventory_value.toFixed(1)}`
+    : "· 当前无库存";
+  $("#hh_stock_table").innerHTML = h.stock.length ? `<table class="hh-table">
+    <tr><th>食材</th><th>在库（毛重）</th><th>估值</th><th>提示</th></tr>
+    ${h.stock.map(s => `<tr style="${s.allergen_flag ? "background:#fff7f6" : ""}">
+      <td>${esc(s.name)}</td><td>${s.grams}g</td><td>¥${s.value.toFixed(2)}</td>
+      <td>${s.allergen_flag ? `<span class="mini-tag">含全家规避过敏原：${s.allergens.filter(a => h.family_allergens.includes(a)).join("、")}</span>` : '<span class="mini-tag ok">可用于配餐</span>'}</td>
+    </tr>`).join("")}
+  </table>` : `<div style="font-size:13px;color:#6b7d70">确认采购到货或录入期初库存后，这里会显示每种食材余量与估值。</div>`;
+}
+
+/* ---------- 弹窗 ---------- */
+
+function modal(html) {
+  const root = $("#modal_root");
+  root.innerHTML = `<div class="modal-mask"><div class="modal">${html}</div></div>`;
+  root.querySelector(".modal-mask").onclick = e => { if (e.target === root.querySelector(".modal-mask")) closeModal(); };
+  root.querySelector("[data-close]") && (root.querySelector("[data-close]").onclick = closeModal);
+  return root;
+}
+function closeModal() { $("#modal_root").innerHTML = ""; }
+
+function memberModal(m) {
+  const isEdit = !!m;
+  const m0 = m || { name: "", profile: { age_group: "adult_m", activity: "moderate", goal: "maintain" }, allergens: [] };
+  const root = modal(`
+    <h3>${isEdit ? "编辑成员" : "添加家庭成员"}</h3>
+    <div class="field"><label>姓名</label><input class="mini" id="m_name" style="width:100%;padding:8px 10px" value="${esc(m0.name)}"></div>
+    <div class="field"><label>年龄性别分层</label><select id="m_age" style="width:100%;padding:8px 10px">${Object.entries(meta.profiles).map(([k, v]) => `<option value="${k}" ${m0.profile.age_group === k ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+    <div class="field"><label>活动水平</label><select id="m_activity" style="width:100%;padding:8px 10px">${Object.entries(meta.activities).map(([k, v]) => `<option value="${k}" ${m0.profile.activity === k ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+    <div class="field"><label>膳食目标</label><select id="m_goal" style="width:100%;padding:8px 10px">${Object.entries(meta.goals).map(([k, v]) => `<option value="${k}" ${m0.profile.goal === k ? "selected" : ""}>${v}</option>`).join("")}</select></div>
+    <div class="field"><label>过敏原</label><div class="chips" id="m_allergens">${meta.allergens.map(a => `<span class="chip ${m0.allergens.includes(a) ? "on" : ""}" data-a="${a}">${a}</span>`).join("")}</div></div>
+    <div class="ops"><button class="btn cancel" data-close>取消</button><button class="btn" id="m_save">保存</button></div>`);
+  root.querySelectorAll("#m_allergens .chip").forEach(c => c.onclick = () => c.classList.toggle("on"));
+  root.querySelector("#m_save").onclick = async () => {
+    const body = {
+      name: root.querySelector("#m_name").value,
+      profile: { age_group: root.querySelector("#m_age").value, activity: root.querySelector("#m_activity").value, goal: root.querySelector("#m_goal").value },
+      allergens: [...root.querySelectorAll("#m_allergens .chip.on")].map(c => c.dataset.a),
+    };
+    const ok = isEdit
+      ? await hhCall(`/api/household/members/${m.id}`, body, "PUT")
+      : await hhCall("/api/household/members", body);
+    if (ok) closeModal();
+  };
+}
+
+function foodSelect() {
+  return state.foods.map(f => `<option value="${f.id}">${f.name}（${f.cat_label} · ¥${f.cost}/100g${f.allergens.length ? " · 含" + f.allergens.join("/") : ""}）</option>`).join("");
+}
+
+function arriveModal(it) {
+  const root = modal(`
+    <h3>确认到货：${esc(it.name)}</h3>
+    <div class="field"><label>实际克重（毛重 g）</label><input class="mini" id="a_grams" type="number" min="1" value="${it.grams}" style="width:100%;padding:8px 10px"></div>
+    <div class="field"><label>实际单价（元 / 100g，留空按预估 ¥${state.foods.find(f => f.id === it.food_id).cost}）</label><input class="mini" id="a_cost" type="number" min="0" step="0.1" placeholder="按预估单价" style="width:100%;padding:8px 10px"></div>
+    <div class="ops"><button class="btn cancel" data-close>取消</button><button class="btn" id="a_save">确认入库</button></div>`);
+  root.querySelector("#a_save").onclick = async () => {
+    const body = { grams: Number(root.querySelector("#a_grams").value) };
+    const uc = root.querySelector("#a_cost").value;
+    if (uc !== "") body.unit_cost = Number(uc);
+    if (await hhCall(`/api/household/shopping/${it.id}/arrive`, body)) closeModal();
+  };
+}
+
+function addItemModal() {
+  const h = state.household;
+  if (!h.state.members.length && !confirm("尚未添加家庭成员，手动采购项将不分配负责人。继续？")) { /* allow anyway */ }
+  const root = modal(`
+    <h3>手动添加采购项</h3>
+    <div class="field"><label>食材（含全家过敏原的食材会被拦截）</label><select id="i_food" style="width:100%;padding:8px 10px">${foodSelect()}</select></div>
+    <div class="field"><label>克重（毛重 g）</label><input id="i_grams" type="number" min="10" step="10" value="200" style="width:100%;padding:8px 10px"></div>
+    <div class="field"><label>负责人</label><select id="i_assignee" style="width:100%;padding:8px 10px">${memberOptions(h, null)}</select></div>
+    <div class="ops"><button class="btn cancel" data-close>取消</button><button class="btn" id="i_save">加入清单</button></div>`);
+  root.querySelector("#i_save").onclick = async () => {
+    const body = { food_id: root.querySelector("#i_food").value, grams: Number(root.querySelector("#i_grams").value) };
+    const a = root.querySelector("#i_assignee").value;
+    if (a) body.assignee = Number(a);
+    if (await hhCall("/api/household/shopping", body)) closeModal();
+  };
+}
+
+function stockModal() {
+  const root = modal(`
+    <h3>期初 / 盘库录入</h3>
+    <div class="field"><label>食材</label><select id="s_food" style="width:100%;padding:8px 10px">${foodSelect()}</select></div>
+    <div class="field"><label>在库克重（毛重 g，填 0 清除）</label><input id="s_grams" type="number" min="0" step="10" value="0" style="width:100%;padding:8px 10px"></div>
+    <div style="font-size:11px;color:#6b7d70;line-height:1.6">用于录入采购渠道外的期初库存或盘点修正。若食材含全家规避过敏原，会在预警中提示但不拦截（防止误用）。</div>
+    <div class="ops"><button class="btn cancel" data-close>取消</button><button class="btn" id="s_save">保存库存</button></div>`);
+  root.querySelector("#s_save").onclick = async () => {
+    if (await hhCall("/api/household/stock", { food_id: root.querySelector("#s_food").value, grams: Number(root.querySelector("#s_grams").value) })) closeModal();
+  };
+}
+
+function budgetModal() {
+  const root = modal(`
+    <h3>调整本周采购预算</h3>
+    <div class="field"><label>周预算（元）</label><input id="b_val" type="number" min="0" step="5" value="${state.household.budget.budget}" style="width:100%;padding:8px 10px"></div>
+    <div class="ops"><button class="btn cancel" data-close>取消</button><button class="btn" id="b_save">保存</button></div>`);
+  root.querySelector("#b_save").onclick = async () => {
+    if (await hhCall("/api/household/budget", { weekly_budget: Number(root.querySelector("#b_val").value) })) closeModal();
+  };
+}
+
+async function buildShoppingFromWeek() {
+  const p = collectParams();
+  try {
+    const d = await api("/api/household/shopping/build", "POST", p);
+    state.household = d;
+    state.week = d.generated_week;
+    renderHousehold();
+  } catch (e) {
+    alert("生成采购清单失败：" + e.message);
+  }
+}
+
+$("#hh_add_member").onclick = () => memberModal(null);
+$("#hh_add_item").onclick = () => addItemModal();
+$("#hh_add_stock").onclick = () => stockModal();
+$("#hh_edit_budget").onclick = () => budgetModal();
+$("#hh_build").onclick = buildShoppingFromWeek;
+$("#hh_new_cycle").onclick = async () => {
+  if (!confirm("开启新的采购周？未到货任务会结转、库存保留、周限次计数清零。")) return;
+  await hhCall("/api/household/cycle", {});
+};
 
 (async () => {
   const m = await (await fetch("/api/meta")).json();
   initMeta(m);
   await loadFoods();
+  state.foods = (await (await fetch("/api/foods")).json()).foods;
+  await loadHousehold();
   generate();
 })();
 </script>

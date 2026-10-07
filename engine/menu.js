@@ -3,7 +3,7 @@
    肝脏全周至多 1 次，输出每日营养汇总与多样性统计。 */
 
 const { FOODS, getFood } = require("./foods");
-const { planDay } = require("./constraints");
+const { planDay, purchaseState } = require("./constraints");
 
 const DAY_NAMES = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 
@@ -66,7 +66,9 @@ function buildDayPools(d, params) {
 
 function weekPlan(params) {
   const days = [];
-  const weeklyUsed = {};
+  /* 外部传入的本周已用次数（如已消耗天数的限次计数）与库存（毛重克）逐日结转 */
+  const weeklyUsed = { ...(params.weekly_used || {}) };
+  const stockLive = params.stock ? { ...params.stock } : null;
   let prevIds = new Set();
 
   for (let d = 0; d < 7; d++) {
@@ -76,6 +78,7 @@ function weekPlan(params) {
       exclude: relaxed ? [...(params.exclude || [])] : [...(params.exclude || []), ...prevIds],
       weekly_used: weeklyUsed,
       day_pools: dayPools,
+      stock: stockLive,
     });
     let result = runDay(false);
     if (!result.feasible) {
@@ -83,12 +86,24 @@ function weekPlan(params) {
     }
     const ids = result.items.map(i => i.food_id);
     ids.forEach(id => { weeklyUsed[id] = (weeklyUsed[id] || 0) + 1; });
+    /* 当日配餐消耗在库余量，剩余库存结转到次日，保证后续配餐优先用库存 */
+    let dayPurchase = result.totals.cost;
+    if (stockLive) {
+      const ps = purchaseState(result.items, stockLive);
+      dayPurchase = ps.purchase_cost;
+      for (const [id, g] of Object.entries(ps.remaining)) stockLive[id] = g;
+      for (const id of result.items.map(i => i.food_id)) {
+        if (stockLive[id] < 0.05) stockLive[id] = 0;
+      }
+    }
     prevIds = new Set(ids);
 
     days.push({
       day: d, day_name: DAY_NAMES[d],
       items: result.items, totals: result.totals, ratios: result.ratios,
       adequacy: result.adequacy, cost: result.totals.cost,
+      purchase_cost: round1(dayPurchase),
+      stock_remaining: stockLive ? { ...stockLive } : null,
       feasible: result.feasible, reasons: result.reasons || [],
     });
   }
@@ -118,8 +133,13 @@ function weekPlan(params) {
       liver_count: (counts["pork_liver"] || 0),
     },
     weekly_cost: Math.round(days.reduce((s, d) => s + d.cost, 0) * 100) / 100,
+    weekly_purchase_cost: round1(days.reduce((s, d) => s + d.purchase_cost, 0)),
+    stock_remaining: stockLive ? { ...stockLive } : null,
+    weekly_used: weeklyUsed,
     feasible: days.every(x => x.feasible),
   };
 }
+
+function round1(x) { return Math.round(x * 10) / 10; }
 
 module.exports = { weekPlan, DAY_NAMES, STAPLE_ROTATION, PROTEIN_KINDS };

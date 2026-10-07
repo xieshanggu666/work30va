@@ -4,7 +4,9 @@
   "description": "家庭营养膳食规划系统",
   "scripts": {
     "dev": "node start.js",
-    "test": "node tests/run_tests.js"
+    "test": "node tests/run_tests.js",
+    "test:household": "node tests/run_household_tests.js",
+    "test:all": "node tests/run_tests.js && node tests/run_household_tests.js"
   },
   "license": "MIT"
 }
